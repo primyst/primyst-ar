@@ -1,1 +1,0 @@
-# primyst-ar

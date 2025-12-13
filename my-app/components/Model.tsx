@@ -8,7 +8,7 @@ type ModelProps = {
 };
 
 export default function Model({ color }: ModelProps) {
-  const { scene } = useGLTF("/models/product.glb") as { scene: Group };
+  const { scene } = useGLTF("/models/2026_mercedes-benz_cla_sedan_ev.glb") as { scene: Group };
 
   scene.traverse((child) => {
     if ("material" in child && child.material) {

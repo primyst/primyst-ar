@@ -4,13 +4,12 @@ import { useGLTF } from "@react-three/drei";
 import { Group } from "three";
 
 type ModelProps = {
-  color?: string;
+  color: string;
 };
 
-export default function Model({ color = "#ffffff" }: ModelProps) {
+export default function Model({ color }: ModelProps) {
   const { scene } = useGLTF("/models/product.glb") as { scene: Group };
 
-  // Apply color to all meshes
   scene.traverse((child) => {
     if ("material" in child && child.material) {
       // @ts-ignore

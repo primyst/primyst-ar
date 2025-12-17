@@ -1,14 +1,24 @@
-import ProductViewer from "@/components/ProductViewer";
-import ControlsPanel from "@/components/ControlsPanel";
+import TopBar from "./components/TopBar";
+import CarCanvas from "./components/CarCanvas";
+import ConfigPanel from "./components/ConfigPanel";
+import SpecsBar from "./components/SpecsBar";
 
 export default function Page() {
   return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold mb-4">3D Product Experience</h1>
-      <div className="w-full max-w-4xl h-[600px] relative">
-        <ProductViewer />
-        <ControlsPanel />
+    <main className="h-screen flex flex-col bg-black text-white">
+      <TopBar />
+
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1">
+          <CarCanvas />
+        </div>
+
+        <div className="w-[320px] border-l border-white/10">
+          <ConfigPanel />
+        </div>
       </div>
-    </div>
+
+      <SpecsBar />
+    </main>
   );
 }

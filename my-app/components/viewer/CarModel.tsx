@@ -1,18 +1,36 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
-import { Group, Mesh, MeshStandardMaterial } from "three";
 import { useEffect, useRef } from "react";
+import { Group, Mesh, MeshStandardMaterial, Box3, Vector3 } from "three";
 import { useCarConfig } from "@/context/CarConfigContext";
 
 export default function CarModel() {
   const { color } = useCarConfig();
   const groupRef = useRef<Group>(null);
 
-  // Load GLB model
   const { scene } = useGLTF(
     "/models/2026_mercedes-benz_cla_sedan_ev.glb"
   ) as { scene: Group };
+
+  // Auto-center and auto-scale
+  useEffect(() => {
+    if (groupRef.current) {
+      const box = new Box3().setFromObject(scene);
+      const size = new Vector3();
+      const center = new Vector3();
+      box.getSize(size);
+      box.getCenter(center);
+
+      // Center model
+      scene.position.sub(center);
+
+      // Scale to fit max dimension (~1.8 units)
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 1.8 / maxDim;
+      groupRef.current.scale.set(scale, scale, scale);
+    }
+  }, [scene]);
 
   // Apply color whenever it changes
   useEffect(() => {
@@ -26,14 +44,5 @@ export default function CarModel() {
     });
   }, [color, scene]);
 
-  return (
-    <group
-      ref={groupRef}
-      scale={[1.8, 1.8, 1.8]}        // Makes the car bigger and prominent
-      position={[0, -0.82, 0]}       // Centers vertically above ground plane
-      rotation={[0, Math.PI, 0]}     // Optional: face camera properly
-    >
-      <primitive object={scene} />
-    </group>
-  );
+  return <group ref={groupRef}><primitive object={scene} /></group>;
 }

@@ -5,7 +5,11 @@ import { useEffect, useRef } from "react";
 import { Group, Mesh, MeshStandardMaterial, Box3, Vector3 } from "three";
 import { useCarConfig } from "@/context/CarConfigContext";
 
-export default function CarModel() {
+interface CarModelProps {
+  view: "exterior" | "interior";
+}
+
+export default function CarModel({ view }: CarModelProps) {
   const { color } = useCarConfig();
   const groupRef = useRef<Group>(null);
 
@@ -43,6 +47,22 @@ export default function CarModel() {
       }
     });
   }, [color, scene]);
+
+  // Toggle interior visibility based on view
+  useEffect(() => {
+    scene.traverse((child) => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh;
+        // Example: interior meshes contain "Interior" in their name
+        if (mesh.name.includes("Interior")) {
+          mesh.visible = view === "interior";
+        } else {
+          // Exterior meshes always visible
+          mesh.visible = true;
+        }
+      }
+    });
+  }, [view, scene]);
 
   return <group ref={groupRef}><primitive object={scene} /></group>;
 }

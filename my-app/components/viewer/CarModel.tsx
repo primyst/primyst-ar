@@ -1,7 +1,7 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useRef, forwardRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import { Group, Mesh, MeshStandardMaterial, Box3, Vector3 } from "three";
 import { useCarConfig } from "@/context/CarConfigContext";
 
@@ -9,7 +9,7 @@ interface CarModelProps {
   view: "exterior" | "interior";
 }
 
-const CarModel = forwardRef<Group, CarModelProps>(({ view }, ref) => {
+const CarModel = forwardRef<Group | null, CarModelProps>(({ view }, ref) => {
   const { color } = useCarConfig();
   const groupRef = useRef<Group>(null);
 
@@ -50,21 +50,16 @@ const CarModel = forwardRef<Group, CarModelProps>(({ view }, ref) => {
     });
   }, [color, scene]);
 
-  // Interior visibility + hide roof/doors for interior
+  // Interior visibility + hide roof/doors
   useEffect(() => {
     scene.traverse((child) => {
       if ((child as Mesh).isMesh) {
         const mesh = child as Mesh;
 
-        // Interior meshes
         if (mesh.name.includes("Interior")) {
           mesh.visible = view === "interior";
-        }
-
-        // Exterior meshes
-        else {
+        } else {
           mesh.visible = true;
-          // Example: hide roof/doors for interior
           if (view === "interior" && (mesh.name.includes("Roof") || mesh.name.includes("Door"))) {
             mesh.visible = false;
           }

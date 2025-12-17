@@ -9,7 +9,7 @@ import { Vector3, Box3, Group } from "three";
 import gsap from "gsap";
 
 // Auto camera component
-function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRef: React.RefObject<Group> }) {
+function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRef: React.RefObject<Group | null> }) {
   const { camera } = useThree();
 
   useEffect(() => {
@@ -56,7 +56,7 @@ function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
 
 export default function CarViewer() {
   const [view, setView] = useState<"exterior" | "interior">("exterior");
-  const sceneRef = useRef<Group>(null);
+  const sceneRef = useRef<Group | null>(null);
   const limits = useCameraLimits(view, sceneRef.current);
 
   return (
@@ -82,7 +82,7 @@ export default function CarViewer() {
         className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950"
         shadows
       >
-        {/* Lights with dynamic intensity */}
+        {/* Lights */}
         <Lights intensity={view === "interior" ? 0.6 : 1} />
 
         {/* Ground plane */}
@@ -94,7 +94,7 @@ export default function CarViewer() {
         {/* Car model */}
         <CarModel ref={sceneRef} view={view} />
 
-        {/* Camera */}
+        {/* Auto camera */}
         <AutoCamera view={view} sceneRef={sceneRef} />
 
         {/* Orbit controls */}

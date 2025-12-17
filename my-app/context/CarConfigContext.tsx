@@ -1,20 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
+import { CAR_COLORS, CarColor } from "@/lib/colors";
 
 type CarConfigContextType = {
-  color: string;
-  setColor: (color: string) => void;
+  color: CarColor;
+  setColor: (color: CarColor) => void;
 };
 
 const CarConfigContext = createContext<CarConfigContextType | null>(null);
 
-export function CarConfigProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [color, setColor] = useState("#f5f5f5");
+export function CarConfigProvider({ children }: { children: ReactNode }) {
+  const [color, setColor] = useState<CarColor>(CAR_COLORS[0]);
 
   return (
     <CarConfigContext.Provider value={{ color, setColor }}>
@@ -25,8 +22,6 @@ export function CarConfigProvider({
 
 export function useCarConfig() {
   const ctx = useContext(CarConfigContext);
-  if (!ctx) {
-    throw new Error("useCarConfig must be used inside CarConfigProvider");
-  }
+  if (!ctx) throw new Error("useCarConfig must be used inside CarConfigProvider");
   return ctx;
 }

@@ -1,24 +1,20 @@
-import TopBar from "./components/TopBar";
-import CarCanvas from "./components/CarCanvas";
-import ConfigPanel from "./components/ConfigPanel";
-import SpecsBar from "./components/SpecsBar";
+import CarViewer from "@/components/viewer/CarViewer";
+import CarDetails from "@/components/ui/CarDetails";
 
-export default function Page() {
+export default function Home() {
   return (
-    <main className="h-screen flex flex-col bg-black text-white">
-      <TopBar />
+    <main className="h-screen w-full bg-neutral-950 text-white">
+      <div className="grid h-full grid-cols-1 lg:grid-cols-5">
+        {/* 3D Viewer */}
+        <section className="lg:col-span-3 h-[60vh] lg:h-full">
+          <CarViewer />
+        </section>
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1">
-          <CarCanvas />
-        </div>
-
-        <div className="w-[320px] border-l border-white/10">
-          <ConfigPanel />
-        </div>
+        {/* Info Panel */}
+        <section className="lg:col-span-2 h-auto lg:h-full overflow-y-auto border-t lg:border-t-0 lg:border-l border-neutral-800">
+          <CarDetails />
+        </section>
       </div>
-
-      <SpecsBar />
     </main>
   );
 }

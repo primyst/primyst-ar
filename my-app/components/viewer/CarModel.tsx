@@ -1,93 +1,134 @@
 "use client";
 
-import { useGLTF } from "@react-three/drei";
-import { forwardRef, useEffect, useRef } from "react";
-import { Group, Mesh, MeshStandardMaterial, Box3, Vector3 } from "three";
-import { useCarConfig } from "@/context/CarConfigContext";
+import { Canvas, useThree } from "@react-three/fiber";
+import { OrbitControls, Environment } from "@react-three/drei";
+import CarModel from "./CarModel";
+import Lights from "./Lights";
+import { useEffect, useState, useRef } from "react";
+import { Vector3, Box3, Group } from "three";
 import gsap from "gsap";
 
-interface CarModelProps {
-  view: "exterior" | "interior";
+// Auto camera transitions
+function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRef: React.RefObject<Group | null> }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (!sceneRef.current) return;
+
+    const cameraPresets = {
+      exterior: { position: [4, 2, 6], target: [0, 0, 0] },
+      interior: { position: [0, 1.2, 1], target: [0, 1.2, 2] },
+    };
+
+    const { position, target } = cameraPresets[view];
+
+    gsap.to(camera.position, { x: position[0], y: position[1], z: position[2], duration: 1 });
+    gsap.to({}, {
+      duration: 1,
+      onUpdate: () => camera.lookAt(target[0], target[1], target[2]),
+    });
+  }, [camera, view, sceneRef]);
+
+  return null;
 }
 
-const CarModel = forwardRef<Group | null, CarModelProps>(({ view }, ref) => {
-  const { color } = useCarConfig();
-  const groupRef = useRef<Group>(null);
+// Hook: compute dynamic zoom limits based on visible objects
+function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
+  const [limits, setLimits] = useState({ min: 0.5, max: 8 });
 
-  const { scene } = useGLTF("/models/2026_mercedes-benz_cla_sedan_ev.glb") as { scene: Group };
-
-  // Forward ref to parent
   useEffect(() => {
-    if (ref && typeof ref === "object" && "current" in ref) {
-      ref.current = groupRef.current;
-    }
-  }, [ref]);
+    if (!scene) return;
 
-  // Auto-center and scale
-  useEffect(() => {
-    if (!groupRef.current) return;
-    const box = new Box3().setFromObject(scene);
+    const box = new Box3();
+    const tempBox = new Box3();
+    let first = true;
+
+    scene.traverse((child) => {
+      if ((child as Group).isGroup || (child as any).isMesh) {
+        const mesh = child as any;
+        if (mesh.visible) {
+          tempBox.setFromObject(mesh);
+          if (first) {
+            box.copy(tempBox);
+            first = false;
+          } else {
+            box.union(tempBox);
+          }
+        }
+      }
+    });
+
     const size = new Vector3();
-    const center = new Vector3();
     box.getSize(size);
-    box.getCenter(center);
-
-    scene.position.sub(center);
-
     const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = 1.8 / maxDim;
-    groupRef.current.scale.set(scale, scale, scale);
-  }, [scene]);
 
-  // Apply car color
-  useEffect(() => {
-    scene.traverse((child) => {
-      if ((child as Mesh).isMesh) {
-        const mesh = child as Mesh;
-        if (mesh.material instanceof MeshStandardMaterial) {
-          mesh.material.color.set(color.hex);
-        }
+    if (view === "exterior") {
+      setLimits({ min: maxDim * 0.5, max: maxDim * 4 });
+    } else {
+      // Interior zoom slightly closer
+      setLimits({ min: maxDim * 0.15, max: maxDim * 3 });
+    }
+  }, [scene, view]);
+
+  return limits;
+}
+
+export default function CarViewer() {
+  const [view, setView] = useState<"exterior" | "interior">("exterior");
+  const sceneRef = useRef<Group | null>(null);
+  const limits = useCameraLimits(view, sceneRef.current);
+
+  return (
+    <div className="w-full h-full relative">
+      {/* Toggle buttons */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <button
+          onClick={() => setView("exterior")}
+          className={`px-4 py-2 rounded shadow ${view === "exterior" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"}`}
+        >
+          Exterior
+        </button>
+        <button
+          onClick={() => setView("interior")}
+          className={`px-4 py-2 rounded shadow ${view === "interior" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"}`}
+        >
+          Interior
+        </button>
+      </div>
+
+      <Canvas
+        dpr={[1, 1.5]}
+        className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950"
+        shadows
+      >
+        {/* Lights */}
+        <Lights intensity={view === "interior" ? 0.6 : 1} />
+
+        {/* Ground plane */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.81, 0]} receiveShadow>
+          <planeGeometry args={[20, 20]} />
+          <shadowMaterial opacity={view === "interior" ? 0.1 : 0.4} />
+        </mesh>
+
+        {/* Car model */}
+        <CarModel ref={sceneRef} view={view} />
+
+        {/* Camera */}
+        <AutoCamera view={view} sceneRef={sceneRef} />
+
+        {/* Orbit controls */}
+        <OrbitControls
+          enablePan={false}
+          autoRotate={false}
+          minDistance={limits.min}
+          maxDistance={limits.max}
+          maxPolarAngle={view === "interior" ? Math.PI / 2.1 : Math.PI / 2.1}
+          minPolarAngle={view === "interior" ? Math.PI / 8 : 0}
+        />
+
+        {/* Environment */}
+        <Environment preset="studio" background={false} />
+      </Canvas>
+    </div>
+  );
       }
-    });
-  }, [color, scene]);
-
-  // Fade animation for interior and roof/doors
-  useEffect(() => {
-    scene.traverse((child) => {
-      if ((child as Mesh).isMesh) {
-        const mesh = child as Mesh;
-
-        // Interior meshes
-        if (mesh.name.includes("Interior")) {
-          (mesh.material as MeshStandardMaterial).transparent = true;
-          gsap.to(mesh.material as MeshStandardMaterial, {
-            opacity: view === "interior" ? 1 : 0,
-            duration: 0.8,
-            onStart: () => { if (view === "interior") mesh.visible = true },
-            onComplete: () => { if (view !== "interior") mesh.visible = false },
-          });
-        }
-
-        // Roof/doors
-        if (mesh.name.includes("Roof") || mesh.name.includes("Door")) {
-          (mesh.material as MeshStandardMaterial).transparent = true;
-          gsap.to(mesh.material as MeshStandardMaterial, {
-            opacity: view === "interior" ? 0 : 1,
-            duration: 0.8,
-            onStart: () => { if (view !== "interior") mesh.visible = true },
-            onComplete: () => { if (view === "interior") mesh.visible = false },
-          });
-        }
-
-        // Ensure exterior other parts always visible
-        if (!mesh.name.includes("Interior") && !mesh.name.includes("Roof") && !mesh.name.includes("Door")) {
-          mesh.visible = true;
-        }
-      }
-    });
-  }, [view, scene]);
-
-  return <group ref={groupRef}><primitive object={scene} /></group>;
-});
-
-export default CarModel;

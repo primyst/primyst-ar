@@ -3,7 +3,7 @@ import CarDetails from "@/components/ui/CarDetails";
 
 export default function Home() {
   return (
-    <main className="h-screen w-full bg-neutral-950 text-white">
+    <main className="h-screen w-full overflow-hidden bg-neutral-950 text-white">
       <div className="grid h-full grid-cols-1 lg:grid-cols-5">
         {/* 3D Viewer */}
         <section className="lg:col-span-3 h-[60vh] lg:h-full">

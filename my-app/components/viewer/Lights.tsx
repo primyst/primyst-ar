@@ -1,11 +1,18 @@
-"use client";
+interface LightsProps {
+  intensity?: number;
+}
 
-export default function Lights() {
+export default function Lights({ intensity = 1 }: LightsProps) {
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 5, 5]} intensity={2} castShadow />
-      <directionalLight position={[-5, 3, -5]} intensity={1} />
+      <ambientLight intensity={0.3 * intensity} />
+      <directionalLight
+        castShadow
+        position={[5, 10, 5]}
+        intensity={0.7 * intensity}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
     </>
   );
 }

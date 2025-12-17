@@ -17,7 +17,7 @@ function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRe
 
     const cameraPresets = {
       exterior: { position: [4, 2, 6], target: [0, 0, 0] },
-      interior: { position: [0, 1.2, 1], target: [0, 1.2, 2] }, // lower & forward for interior
+      interior: { position: [0, 1.2, 1], target: [0, 1.2, 2] },
     };
 
     const { position, target } = cameraPresets[view];
@@ -32,7 +32,7 @@ function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRe
   return null;
 }
 
-// Hook to compute dynamic zoom limits
+// Hook for dynamic zoom limits
 function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
   const [limits, setLimits] = useState({ min: 0.5, max: 8 });
 
@@ -82,7 +82,7 @@ export default function CarViewer() {
         className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950"
         shadows
       >
-        {/* Lights */}
+        {/* Lights with dynamic intensity */}
         <Lights intensity={view === "interior" ? 0.6 : 1} />
 
         {/* Ground plane */}
@@ -94,7 +94,7 @@ export default function CarViewer() {
         {/* Car model */}
         <CarModel ref={sceneRef} view={view} />
 
-        {/* Auto camera */}
+        {/* Camera */}
         <AutoCamera view={view} sceneRef={sceneRef} />
 
         {/* Orbit controls */}
@@ -107,7 +107,7 @@ export default function CarViewer() {
           minPolarAngle={view === "interior" ? Math.PI / 8 : 0}
         />
 
-        {/* Environment reflections */}
+        {/* Environment */}
         <Environment preset="studio" background={false} />
       </Canvas>
     </div>

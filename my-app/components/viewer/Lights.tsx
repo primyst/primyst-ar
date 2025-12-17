@@ -1,5 +1,7 @@
+"use client";
+
 interface LightsProps {
-  intensity?: number;
+  intensity?: number; // optional, default 1
 }
 
 export default function Lights({ intensity = 1 }: LightsProps) {

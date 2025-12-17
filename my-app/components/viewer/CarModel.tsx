@@ -4,6 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { forwardRef, useEffect, useRef } from "react";
 import { Group, Mesh, MeshStandardMaterial, Box3, Vector3 } from "three";
 import { useCarConfig } from "@/context/CarConfigContext";
+import gsap from "gsap";
 
 interface CarModelProps {
   view: "exterior" | "interior";
@@ -38,7 +39,7 @@ const CarModel = forwardRef<Group | null, CarModelProps>(({ view }, ref) => {
     groupRef.current.scale.set(scale, scale, scale);
   }, [scene]);
 
-  // Apply color
+  // Apply car color
   useEffect(() => {
     scene.traverse((child) => {
       if ((child as Mesh).isMesh) {
@@ -50,19 +51,37 @@ const CarModel = forwardRef<Group | null, CarModelProps>(({ view }, ref) => {
     });
   }, [color, scene]);
 
-  // Interior visibility + hide roof/doors
+  // Fade animation for interior and roof/doors
   useEffect(() => {
     scene.traverse((child) => {
       if ((child as Mesh).isMesh) {
         const mesh = child as Mesh;
 
+        // Interior meshes
         if (mesh.name.includes("Interior")) {
-          mesh.visible = view === "interior";
-        } else {
+          (mesh.material as MeshStandardMaterial).transparent = true;
+          gsap.to(mesh.material as MeshStandardMaterial, {
+            opacity: view === "interior" ? 1 : 0,
+            duration: 0.8,
+            onStart: () => { if (view === "interior") mesh.visible = true },
+            onComplete: () => { if (view !== "interior") mesh.visible = false },
+          });
+        }
+
+        // Roof/doors
+        if (mesh.name.includes("Roof") || mesh.name.includes("Door")) {
+          (mesh.material as MeshStandardMaterial).transparent = true;
+          gsap.to(mesh.material as MeshStandardMaterial, {
+            opacity: view === "interior" ? 0 : 1,
+            duration: 0.8,
+            onStart: () => { if (view !== "interior") mesh.visible = true },
+            onComplete: () => { if (view === "interior") mesh.visible = false },
+          });
+        }
+
+        // Ensure exterior other parts always visible
+        if (!mesh.name.includes("Interior") && !mesh.name.includes("Roof") && !mesh.name.includes("Door")) {
           mesh.visible = true;
-          if (view === "interior" && (mesh.name.includes("Roof") || mesh.name.includes("Door"))) {
-            mesh.visible = false;
-          }
         }
       }
     });

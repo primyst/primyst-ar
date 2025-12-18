@@ -1,5 +1,6 @@
 import "./globals.css";
 import { CarConfigProvider } from "@/context/CarConfigContext";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "Primyst Drive",
@@ -9,6 +10,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <Analytics />
       <body className="bg-neutral-950 text-white">
         <CarConfigProvider>{children}</CarConfigProvider>
       </body>

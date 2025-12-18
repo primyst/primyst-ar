@@ -8,7 +8,7 @@ import { useEffect, useState, useRef } from "react";
 import { Vector3, Box3, Group } from "three";
 import gsap from "gsap";
 
-// Auto camera component
+// Auto camera transitions
 function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRef: React.RefObject<Group | null> }) {
   const { camera } = useThree();
 
@@ -32,14 +32,32 @@ function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRe
   return null;
 }
 
-// Hook for dynamic zoom limits
+// Hook: compute dynamic zoom limits based on visible objects
 function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
   const [limits, setLimits] = useState({ min: 0.5, max: 8 });
 
   useEffect(() => {
     if (!scene) return;
 
-    const box = new Box3().setFromObject(scene);
+    const box = new Box3();
+    const tempBox = new Box3();
+    let first = true;
+
+    scene.traverse((child) => {
+      if ((child as Group).isGroup || (child as any).isMesh) {
+        const mesh = child as any;
+        if (mesh.visible) {
+          tempBox.setFromObject(mesh);
+          if (first) {
+            box.copy(tempBox);
+            first = false;
+          } else {
+            box.union(tempBox);
+          }
+        }
+      }
+    });
+
     const size = new Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
@@ -47,7 +65,8 @@ function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
     if (view === "exterior") {
       setLimits({ min: maxDim * 0.5, max: maxDim * 4 });
     } else {
-      setLimits({ min: maxDim * 0.2, max: maxDim * 2.5 });
+      // Interior zoom slightly closer
+      setLimits({ min: maxDim * 0.15, max: maxDim * 3 });
     }
   }, [scene, view]);
 
@@ -94,7 +113,7 @@ export default function CarViewer() {
         {/* Car model */}
         <CarModel ref={sceneRef} view={view} />
 
-        {/* Auto camera */}
+        {/* Camera */}
         <AutoCamera view={view} sceneRef={sceneRef} />
 
         {/* Orbit controls */}

@@ -1,6 +1,18 @@
+"use client";
+
 import ColorPicker from "./ColorPicker";
+import { useCarConfig } from "@/context/CarConfigContext";
+
+const BASE_PRICE = 78_500_000;
+
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG")}`;
+}
 
 export default function CarDetails() {
+  const { color } = useCarConfig();
+  const totalPrice = BASE_PRICE + (color.priceDelta ?? 0);
+
   return (
     <div className="p-5 space-y-6">
       <header>
@@ -9,7 +21,14 @@ export default function CarDetails() {
       </header>
 
       <div>
-        <p className="text-2xl font-bold">₦78,500,000</p>
+        <p className="text-2xl font-bold">{formatNaira(totalPrice)}</p>
+        {color.priceDelta ? (
+          <p className="text-sm text-neutral-400">
+            Includes +{formatNaira(color.priceDelta)} for {color.name}
+          </p>
+        ) : (
+          <p className="text-sm text-neutral-400">{color.name} — no additional cost</p>
+        )}
       </div>
 
       <ColorPicker />

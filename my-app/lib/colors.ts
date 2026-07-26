@@ -1,12 +1,12 @@
-export type CarColor = {
+export interface CarColor {
   name: string;
   hex: string;
-};
+}
 
 export const CAR_COLORS: CarColor[] = [
+  { name: "Obsidian Black", hex: "#0a0a0a" },
   { name: "Polar White", hex: "#f5f5f5" },
-  { name: "Obsidian Black", hex: "#0b0b0b" },
-  { name: "Iridium Silver", hex: "#bfc3c6" },
-  { name: "Graphite Grey", hex: "#3a3a3a" },
-  { name: "Deep Blue", hex: "#0f1c2e" },
+  { name: "Selenite Grey", hex: "#8b8d8f" },
+  { name: "Patagonia Red", hex: "#8c1c1c" },
+  { name: "Denim Blue", hex: "#1e3a5f" },
 ];

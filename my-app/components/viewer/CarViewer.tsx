@@ -4,73 +4,72 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import CarModel from "./CarModel";
 import Lights from "./Lights";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Vector3, Box3, Group } from "three";
 import gsap from "gsap";
 
+const CAMERA_PRESETS = {
+  exterior: { position: [4, 2, 6] as const, target: [0, 0, 0] as const },
+  interior: { position: [0, 1.2, 1] as const, target: [0, 1.2, 2] as const },
+};
+
 // Auto camera transitions
-function AutoCamera({ view, sceneRef }: { view: "exterior" | "interior"; sceneRef: React.RefObject<Group | null> }) {
+function AutoCamera({ view }: { view: "exterior" | "interior" }) {
   const { camera } = useThree();
 
   useEffect(() => {
-    if (!sceneRef.current) return;
+    const { position, target } = CAMERA_PRESETS[view];
 
-    const cameraPresets = {
-      exterior: { position: [4, 2, 6], target: [0, 0, 0] },
-      interior: { position: [0, 1.2, 1], target: [0, 1.2, 2] },
-    };
-
-    const { position, target } = cameraPresets[view];
-
-    gsap.to(camera.position, { x: position[0], y: position[1], z: position[2], duration: 1 });
-    gsap.to({}, {
+    gsap.to(camera.position, {
+      x: position[0],
+      y: position[1],
+      z: position[2],
       duration: 1,
-      onUpdate: () => camera.lookAt(target[0], target[1], target[2]),
     });
-  }, [camera, view, sceneRef]);
+
+    const lookAtTarget = new Vector3(...target);
+    const proxy = { t: 0 };
+
+    gsap.to(proxy, {
+      t: 1,
+      duration: 1,
+      onUpdate: () => camera.lookAt(lookAtTarget),
+    });
+  }, [camera, view]);
 
   return null;
 }
 
-// Hook: compute dynamic zoom limits based on visible objects
+// Camera zoom limits, computed once per view (not per render)
 function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
-  const [limits, setLimits] = useState({ min: 0.5, max: 8 });
-
-  useEffect(() => {
-    if (!scene) return;
+  return useMemo(() => {
+    if (!scene) return { min: 0.5, max: 8 };
 
     const box = new Box3();
     const tempBox = new Box3();
     let first = true;
 
     scene.traverse((child) => {
-      if ((child as Group).isGroup || (child as any).isMesh) {
-        const mesh = child as any;
-        if (mesh.visible) {
-          tempBox.setFromObject(mesh);
-          if (first) {
-            box.copy(tempBox);
-            first = false;
-          } else {
-            box.union(tempBox);
-          }
+      const mesh = child as any;
+      if ((mesh.isGroup || mesh.isMesh) && mesh.visible) {
+        tempBox.setFromObject(mesh);
+        if (first) {
+          box.copy(tempBox);
+          first = false;
+        } else {
+          box.union(tempBox);
         }
       }
     });
 
     const size = new Vector3();
     box.getSize(size);
-    const maxDim = Math.max(size.x, size.y, size.z);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
-    if (view === "exterior") {
-      setLimits({ min: maxDim * 0.5, max: maxDim * 4 });
-    } else {
-      // Interior zoom slightly closer
-      setLimits({ min: maxDim * 0.15, max: maxDim * 3 });
-    }
-  }, [scene, view]);
-
-  return limits;
+    return view === "exterior"
+      ? { min: maxDim * 0.5, max: maxDim * 4 }
+      : { min: maxDim * 0.15, max: maxDim * 3 };
+  }, [view, scene]);
 }
 
 export default function CarViewer() {
@@ -80,17 +79,24 @@ export default function CarViewer() {
 
   return (
     <div className="w-full h-full relative">
-      {/* Toggle buttons */}
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <button
           onClick={() => setView("exterior")}
-          className={`px-4 py-2 rounded shadow ${view === "exterior" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"}`}
+          className={`px-4 py-2 rounded shadow transition-colors ${
+            view === "exterior"
+              ? "bg-blue-600 text-white"
+              : "bg-neutral-700 text-neutral-200"
+          }`}
         >
           Exterior
         </button>
         <button
           onClick={() => setView("interior")}
-          className={`px-4 py-2 rounded shadow ${view === "interior" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"}`}
+          className={`px-4 py-2 rounded shadow transition-colors ${
+            view === "interior"
+              ? "bg-blue-600 text-white"
+              : "bg-neutral-700 text-neutral-200"
+          }`}
         >
           Interior
         </button>
@@ -101,34 +107,28 @@ export default function CarViewer() {
         className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950"
         shadows
       >
-        {/* Lights */}
         <Lights intensity={view === "interior" ? 0.6 : 1} />
 
-        {/* Ground plane */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.81, 0]} receiveShadow>
           <planeGeometry args={[20, 20]} />
           <shadowMaterial opacity={view === "interior" ? 0.1 : 0.4} />
         </mesh>
 
-        {/* Car model */}
         <CarModel ref={sceneRef} view={view} />
 
-        {/* Camera */}
-        <AutoCamera view={view} sceneRef={sceneRef} />
+        <AutoCamera view={view} />
 
-        {/* Orbit controls */}
         <OrbitControls
           enablePan={false}
           autoRotate={false}
           minDistance={limits.min}
           maxDistance={limits.max}
-          maxPolarAngle={view === "interior" ? Math.PI / 2.1 : Math.PI / 2.1}
+          maxPolarAngle={Math.PI / 2.1}
           minPolarAngle={view === "interior" ? Math.PI / 8 : 0}
         />
 
-        {/* Environment */}
         <Environment preset="studio" background={false} />
       </Canvas>
     </div>
   );
-}
+      }

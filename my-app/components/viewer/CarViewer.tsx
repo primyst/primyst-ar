@@ -4,7 +4,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import CarModel from "./CarModel";
 import Lights from "./Lights";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { Suspense, useEffect, useState, useRef, useMemo } from "react";
 import { Vector3, Box3, Group } from "three";
 import gsap from "gsap";
 
@@ -13,7 +13,6 @@ const CAMERA_PRESETS = {
   interior: { position: [0, 1.2, 1] as const, target: [0, 1.2, 2] as const },
 };
 
-// Auto camera transitions
 function AutoCamera({ view }: { view: "exterior" | "interior" }) {
   const { camera } = useThree();
 
@@ -40,7 +39,6 @@ function AutoCamera({ view }: { view: "exterior" | "interior" }) {
   return null;
 }
 
-// Camera zoom limits, computed once per view (not per render)
 function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
   return useMemo(() => {
     if (!scene) return { min: 0.5, max: 8 };
@@ -72,13 +70,39 @@ function useCameraLimits(view: "exterior" | "interior", scene: Group | null) {
   }, [view, scene]);
 }
 
+function LoadingFallback() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-neutral-950 z-20">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-10 w-10 rounded-full border-2 border-neutral-700 border-t-white animate-spin" />
+        <p className="text-sm text-neutral-400">Loading vehicle…</p>
+      </div>
+    </div>
+  );
+}
+
 export default function CarViewer() {
   const [view, setView] = useState<"exterior" | "interior">("exterior");
   const sceneRef = useRef<Group | null>(null);
-  const limits = useCameraLimits(view, sceneRef.current);
+  const [modelReady, setModelReady] = useState(false);
+  const [showDragHint, setShowDragHint] = useState(true);
+
+  const limits = useCameraLimits(view, modelReady ? sceneRef.current : null);
+
+  const dismissDragHint = () => setShowDragHint(false);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" onPointerDown={dismissDragHint}>
+      {!modelReady && <LoadingFallback />}
+
+      {modelReady && showDragHint && (
+        <div className="absolute inset-x-0 bottom-6 z-10 flex justify-center pointer-events-none">
+          <div className="rounded-full bg-black/60 px-4 py-2 text-xs text-neutral-200 animate-pulse">
+            Drag to rotate
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <button
           onClick={() => setView("exterior")}
@@ -114,7 +138,15 @@ export default function CarViewer() {
           <shadowMaterial opacity={view === "interior" ? 0.1 : 0.4} />
         </mesh>
 
-        <CarModel ref={sceneRef} view={view} />
+        <Suspense fallback={null}>
+          <CarModel
+            ref={(group) => {
+              sceneRef.current = group;
+              if (group && !modelReady) setModelReady(true);
+            }}
+            view={view}
+          />
+        </Suspense>
 
         <AutoCamera view={view} />
 
@@ -131,4 +163,4 @@ export default function CarViewer() {
       </Canvas>
     </div>
   );
-      }
+        }
